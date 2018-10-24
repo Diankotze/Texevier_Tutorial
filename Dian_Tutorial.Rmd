@@ -1,0 +1,164 @@
+---
+# IMPORTANT: Change settings here, but DO NOT change the spacing. 
+# Remove comments and add values where applicable. 
+# The descriptions below should be self-explanatory
+
+title: "Texevier Tutorial"
+subtitle: "Financial Econometrics 871"
+
+documentclass: "elsarticle"
+
+# Comment: ----- Follow this pattern for up to 5 authors
+Author1: "Dian Kotze"  # First Author
+Ref1: "Stellenbosch University, Stellenbosch, South Africa" # First Author's 
+Email1: "kotzedian11\\@gmail.com" # First Author's Email address
+
+
+CorrespAuthor_1: TRUE  # If corresponding author is author 3, e.g., use   CorrespAuthor_3: TRUE
+
+keywords: "Multivariate GARCH \\sep Kalman Filter \\sep Copula" # Use \\sep to separate
+#JELCodes: "L250 \\sep L100"
+
+# Comment: ----- Manage headers and footers:
+#BottomLFooter: $Title$
+#BottomCFooter:
+#TopLHeader: \leftmark # Adds section name at topleft. Remove comment to add it.
+BottomRFooter: "\\footnotesize Page \\thepage\\" # Add a '#' before this line to remove footer.
+addtoprule: TRUE
+addfootrule: TRUE               # Use if footers added. Add '#' to remove line.
+
+# Setting page margins:
+margin: 2 # Sides
+bottom: 2 # bottom
+top: 2.5 # Top
+
+linenumbers: FALSE # Used when submitting to journal
+AddTitle: TRUE # Used when submitting to peer reviewed platform. This will remove author names. 
+
+HardSet_layout: TRUE # Hard-set the spacing of words in your document. This will stop LaTeX squashing text to fit on pages, e.g. This is done by hard-setting the spacing dimensions. Set to FALSE if you want LaTeX to optimize this for your paper. 
+bibliography: Tex/ref.bib       # Do not edit: Keep this naming convention and location.
+RemovePreprintSubmittedTo: TRUE  # Removes the 'preprint submitted to...' at bottom of titlepage
+Journal: "Journal of Finance"   # Journal that the paper will be submitting to, if RemovePreprintSubmittedTo is set to TRUE.
+toc: no                         # Add a table of contents
+numbersections: no             # Should sections (and thus figures and tables) be numbered?
+fontsize: 11pt                  # Set fontsize
+linestretch: 1.2                # Set distance between lines.
+link-citations: TRUE            # This creates dynamic links to the papers in reference list.
+output:
+  pdf_document:
+    keep_tex: TRUE
+    template: Tex/TexDefault.txt
+    fig_width: 3.5 # Adjust default figure sizes. This can also be done in the chunks of the text.
+    fig_height: 3.5
+    include:
+      in_header: Tex/packages.txt # Reference file with extra packages
+abstract: |
+  This is my first attempt at producing a paper using texevier. The purpose is to teach us how to write in texevier, and include tables and figures, similar to what we will experience when doing our project. This is revolutionary.
+---
+
+<!-- First: Set your default preferences for chunk options: -->
+
+<!-- If you want a chunk's code to be printed, set echo = TRUE. message = FALSE stops R printing ugly package loading details in your final paper too. I also suggest setting warning = FALSE and checking for warnings in R, else you might find ugly warnings in your paper. -->
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.width = 6, fig.height = 5, fig.pos="H", fig.pos = 'H')
+
+source("code/packages.R")
+
+dailydata <- read_csv("https://raw.githubusercontent.com/Nicktz/ExDat/master/extdata/findata.csv", 
+                      col_types = cols(.default = "d", Date = "D"))
+tidy <- dailydata %>% 
+  gather(key = Stocks, value = values, contains("close"))
+
+
+
+source("code/Returns_calculation.R")
+
+source("code/moments_calculations.R")
+# Note: Include = FALSE implies the code is executed, but not printed in your pdf.
+# warning and message = FALSE implies ugly messages and warnings are removed from your pdf. These should be picked up when you execute the command chunks (code sections below) in your rmd, not printed in your paper!
+
+```
+
+<!-- ############################## -->
+<!-- # Start Writing here: -->
+<!-- ############################## -->
+
+# Question 1 \label{Period 1 and 2 Moments}
+
+The following results are the first and second moments for the periods 2006-2008, and 2010-2013. The values are very small, and with two decimal places, some of the values appear to have mean and variance values of zero, which is not the case. Moreover, I have interpreted that the sample ends at the end of the previous year for both samples.
+
+  * 2006-2008
+  
+```{r Table1, results = 'asis'}
+
+library(xtable)
+
+table <- xtable(Moments_period1, caption = "Moments of the stocks for 2006-2008 \\label{tab1}")
+  print.xtable(table, 
+             floating = TRUE,
+             table.placement = 'H', 
+             comment = FALSE,
+             caption.placement = 'bottom'
+             )
+```
+  
+  * 2010-2013
+```{r Table2, results = 'asis'}
+
+library(xtable)
+
+table <- xtable(Moments_period2, caption = "Moments of the stocks for 2010-2013 \\label{tab1}")
+  print.xtable(table, 
+             floating = TRUE,
+             table.placement = 'H', 
+             comment = FALSE,
+             caption.placement = 'bottom'
+             )
+```
+
+The most notable differences between the two periods is the negative mean values in period 1 (2006-2008) for ABSP and NBKP. Additionally, the variance between the two periods differs substantially for every stock except NBKP and RMH. ABSP has the highest variance in returns across both periods, suggesting that it is the most volatile of the stocks [@Texevier \& @Tsay1989]. 
+
+# Question 2: Calculating the full sample correlations between the stocks \label{Question 2: Calculate the full sample correlations between the stocks}
+
+```{r Table3, results='asis'}
+
+print.xtable(xtable(cor(dailydata[, c(2,3,4,5,6,7,8)], use = "complete.obs"), caption = "Unconditional Correlations Between Stocks \\label{t}"),
+             floating = TRUE,
+             table.placement = 'H', 
+             scalebox = "0.7",
+             comment = FALSE,
+             caption.placement = 'bottom'
+             )
+```
+
+# Question 3: Plot the univariate GARCH ht processes for each of the series \label{Question 3: Plot the univariate GARCH ht processes for each of the series}
+
+Note that "Data_wide"" is created which has the log returns of all the stocks. This data has been spread, after the log returns were calclulated for each stocks from the dailydata.
+
+```{r figure1, warning =  FALSE, fig.align = 'center', fig.cap = "GARCH Plot \\label{lit}", fig.ext = 'png'}
+
+source("code/GARCH_calculations.R")
+plot(garchfit1, which = "all")
+
+```
+
+# Question 4: Plot the cumulative returns series of a portfolio that is equally weighted to each of the stocks - reweighted each year on the last day of June \label{Question 4}
+
+```{r figure2, warning =  FALSE, fig.align = 'center', fig.cap = "Cumulative returns plot- equally weighted \\label{lit}", fig.ext ='png'}
+
+source("code/Cumulative_return_calculation.R")
+
+ggplot(Cumulative_portfolio_eqw) + 
+  geom_line(aes(date,cumulative_ret), color = "Red") +
+  theme_bw() + labs(title = "Equally Weighted Portfolio's Cumulative Returns")
+```
+
+Unfortunately I was unable to reweight the portfolio on the last day of June each year. I tried using what was provided in practical 5, and I have the intuition behind it. However, there appears to be an error in my code (clearly I am missing something).
+
+As such, this brings an end to my first paper produced in texevier. Excting times ahead!
+
+
+\newpage
+
+# References
